@@ -12,8 +12,8 @@
 */
 
 const CONFIG = {
-  fixationMs: 500,
-  targetMs: 3000,
+  fixationMs: 0,
+  targetMs: 1500,
   maskMs: 300,
   cueMs: 3000,
   itiMs: 500,
@@ -59,7 +59,7 @@ const TEXT = {
       <div class="exp-card"><h2>본 실험 데모</h2><p>데모에서는 절차 확인을 위해 <strong>12시행</strong>만 진행합니다. 실제 계획안은 72시행입니다.</p><p>중립·일치·불일치 조건은 <strong>시행마다 무작위로 섞여</strong> 나옵니다.</p></div>`,
     mainIntroFull: `
       <div class="exp-card"><h2>본 실험</h2><p>총 <strong>72시행</strong>이며 24시행씩 3블록으로 진행합니다. 조건은 시행마다 무작위로 섞입니다.</p></div>`,
-    fixationSpeech: "박자에 맞춰 “바, 바, 바…”",
+    fixationSpeech: "박자에 맞춰 “바, 바, 바…”를 반복하세요.",
     fixationSub: "색이 나타나도 계속 반복하세요.",
     targetNote: "색을 기억하세요",
     cueHelp: "“바”를 멈추고, 이 단어를 박자에 맞춰 계속 반복하세요.",

@@ -31,11 +31,13 @@ function makeTrialTimeline(trial, trialIndex, blockNumber) {
 
   const fixation = {
     type: jsPsychHtmlKeyboardResponse,
-    stimulus: `<div class="trial-stage"><div class="fixation">+</div><div class="speech-reminder">${T.fixationSpeech}<span class="sub">${T.fixationSub}</span></div></div>`,
+    stimulus: `
+      <div class="trial-stage">
+        <div class="fixation">+</div>
+      </div>`,
     choices: "NO_KEYS",
     trial_duration: CONFIG.fixationMs,
     on_load: startMetronome,
-    data: { ...common, trial_stage: "fixation" },
   };
 
   const target = {

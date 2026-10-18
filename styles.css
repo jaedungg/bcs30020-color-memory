@@ -11,7 +11,11 @@ html, body { margin: 0; min-height: 100%; background: #fff; color: var(--text); 
 body { min-height: 100vh; }
 button, input { font: inherit; }
 .language-screen { min-height: 100vh; display: grid; place-items: center; padding: 28px; }
-.language-card { width: min(680px, 94vw); text-align: center; border: 1px solid var(--line); border-radius: 22px; padding: 42px 34px; box-shadow: 0 14px 44px rgba(0,0,0,.07); }
+.language-card { width: min(500px, 84vw); height: min(540px, 84vw);   display: flex;
+  flex-direction: column;
+  align-items: center;      /* 가로 가운데 정렬 */
+  justify-content: center;  /* 세로 가운데 정렬 */
+  text-align: center; border: 1px solid var(--line); border-radius: 36px; padding: 42px 34px; box-shadow: 0 14px 44px rgba(0,0,0,.07); }
 .language-card h1 { margin: 8px 0 14px; font-size: clamp(30px, 5vw, 48px); letter-spacing: -.03em; }
 .eyebrow { text-transform: uppercase; letter-spacing: .09em; font-size: 13px; font-weight: 700; color: var(--muted); }
 .muted { color: var(--muted); }
@@ -33,12 +37,12 @@ button, input { font: inherit; }
 .fixation { font-size: 68px; font-weight: 300; line-height: 1; }
 .speech-reminder { margin-top: 24px; font-size: 22px; font-weight: 700; }
 .speech-reminder .sub { display: block; color: var(--muted); font-weight: 500; font-size: 15px; margin-top: 8px; }
-.target-disc { width: min(620px, 82vw); aspect-ratio: 1; border-radius: 50%; border: 1px solid rgba(0,0,0,.09); box-shadow: 0 10px 34px rgba(0,0,0,.12); }
+.target-disc { width: min(560px, 82vw); aspect-ratio: 1; border-radius: 50%; border: 1px solid rgba(0,0,0,.09); box-shadow: 0 10px 34px rgba(0,0,0,.12); }
 .target-note { margin-bottom: 20px; font-size: 20px; font-weight: 700; }
-.mask-grid { display: grid; grid-template-columns: repeat(6, 92px); grid-template-rows: repeat(6, 92px); gap: 2px; padding: 6px; background: #777; }
+.mask-grid { display: grid; grid-template-columns: repeat(6, 92px); grid-template-rows: repeat(6, 92px); gap: 2px; padding: 2px; background: #777; }
 .mask-cell { width: 92px; height: 92px; }
-.cue-word { font-size: clamp(46px, 10vw, 92px); font-weight: 800; letter-spacing: -.03em; }
-.cue-help { margin-top: 18px; color: var(--muted); font-size: 18px; }
+.cue-word { font-size: clamp(46px, 10vw, 66px); font-weight: 800; letter-spacing: -.03em; }
+.cue-help { margin-top: 54px; color: var(--muted); font-size: 18px; }
 .wheel-stage { min-height: 660px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 22px; text-align: center; }
 .wheel-title { font-size: 24px; font-weight: 760; margin-bottom: 8px; }
 .wheel-subtitle { color: var(--muted); margin-bottom: 18px; }
@@ -60,7 +64,7 @@ button, input { font: inherit; }
 @media (max-width: 620px) {
   .language-card { padding: 32px 20px; }
   .trial-stage, .wheel-stage { min-height: 620px; }
-  .target-disc { width: min(620px, 88vw); }
+  .target-disc { width: min(560px, 88vw); }
   .mask-grid { grid-template-columns: repeat(6, 64px); grid-template-rows: repeat(6, 64px); }
   .mask-cell { width: 64px; height: 64px; }
 }
