@@ -93,35 +93,84 @@ function simpleButtonPage(html, buttonText) {
     type: jsPsychHtmlButtonResponse,
     stimulus: html,
     choices: [buttonText],
+    on_load: hideTrialProgress,
   };
 }
 
 function showFinalScreen() {
   stopMetronome();
+  hideTrialProgress();
   const allResponseRows = jsPsych.data.get().filter({ trial_stage: "response" }).values();
   const rows = allResponseRows.filter(row => !row.is_practice);
   const byCondition = ["neutral", "congruent", "incongruent"].map(cond => {
-    const vals = rows.filter(r => r.condition === cond && typeof r.abs_error_deg === "number").map(r => r.abs_error_deg);
-    const mean = vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
-    return { cond, mean };
+    const conditionRows = rows.filter(r => r.condition === cond);
+    const errors = conditionRows.filter(r => typeof r.abs_error_deg === "number").map(r => r.abs_error_deg);
+    const meanError = errors.length ? errors.reduce((a,b) => a+b, 0) / errors.length : null;
+    const meanAccuracy = conditionRows.length
+      ? conditionRows.reduce((sum, row) => sum + accuracyFromError(row.abs_error_deg), 0) / conditionRows.length
+      : null;
+    return { cond, meanError, meanAccuracy };
   });
-  const summaryRows = byCondition.map(x => `<tr><td>${T.condition[x.cond]}</td><td>${x.mean === null ? "—" : x.mean.toFixed(1) + "°"}</td></tr>`).join("");
+  const overallAccuracy = rows.length
+    ? rows.reduce((sum, row) => sum + accuracyFromError(row.abs_error_deg), 0) / rows.length
+    : 0;
+  const summaryRows = byCondition.map(x => `
+    <tr>
+      <td>${T.condition[x.cond]}</td>
+      <td>${x.meanAccuracy === null ? "—" : x.meanAccuracy.toFixed(1) + "%"}</td>
+      <td>${x.meanError === null ? "—" : x.meanError.toFixed(1) + "°"}</td>
+    </tr>`).join("");
+  const trialResults = rows.map(row => {
+    const answered = typeof row.response_hue_deg === "number";
+    const accuracy = accuracyFromError(row.abs_error_deg);
+    return `
+      <article class="trial-result">
+        <div class="trial-result-heading">
+          <strong>${T.question} ${row.trial_number}</strong>
+          <span>${T.condition[row.condition]}</span>
+        </div>
+        <div class="trial-color-comparison">
+          <div class="result-color">
+            <span class="result-swatch" style="background:${hsl(row.target_hue_deg)}"></span>
+            <span>${T.target}</span>
+          </div>
+          <span class="comparison-arrow" aria-hidden="true">→</span>
+          <div class="result-color">
+            <span class="result-swatch ${answered ? "" : "unanswered"}" style="background:${answered ? hsl(row.response_hue_deg) : "#ddd"}"></span>
+            <span>${answered ? T.response : T.unanswered}</span>
+          </div>
+        </div>
+        <div class="trial-result-metrics">
+          <strong>${T.accuracy} ${accuracy.toFixed(1)}%</strong>
+          <span>${T.absoluteError} ${answered ? row.abs_error_deg.toFixed(1) + "°" : "—"}</span>
+        </div>
+      </article>`;
+  }).join("");
 
   const saveTitle = lang === "ko" ? "데이터 저장" : "Data storage";
   const retryLabel = lang === "ko" ? "다시 저장하기" : "Retry save";
 
   document.body.innerHTML = `
-    <main class="language-screen">
-      <div class="language-card" style="text-align:left">
+    <main class="language-screen results-screen">
+      <div class="language-card results-card">
         <h1>${T.finishTitle}</h1>
         <p>${T.finishBody}</p>
-        <table class="result-table"><thead><tr><th>${lang === 'ko' ? '조건' : 'Condition'}</th><th>${lang === 'ko' ? '평균 절대오차' : 'Mean absolute error'}</th></tr></thead><tbody>${summaryRows}</tbody></table>
-        <div style="margin:18px 0; padding:14px 16px; border:1px solid var(--line); border-radius:12px;">
+        <section class="overall-result" aria-label="${T.overallAccuracy}">
+          <span>${T.overallAccuracy}</span>
+          <strong>${overallAccuracy.toFixed(1)}%</strong>
+        </section>
+        <p class="accuracy-note">${T.accuracyNote}</p>
+        <table class="result-table"><thead><tr><th>${lang === 'ko' ? '조건' : 'Condition'}</th><th>${T.meanAccuracy}</th><th>${T.absoluteError}</th></tr></thead><tbody>${summaryRows}</tbody></table>
+        <section class="trial-results-section">
+          <h2>${T.trialResults}</h2>
+          <div class="trial-results-grid">${trialResults}</div>
+        </section>
+        <div class="save-panel">
           <strong>${saveTitle}</strong>
           <div id="db-save-status" style="margin-top:7px; color:var(--muted);"></div>
           <button id="retry-save" class="primary-btn" style="display:none; margin-top:10px;">${retryLabel}</button>
         </div>
-        <div class="language-buttons" style="justify-content:flex-start">
+        <div class="language-buttons results-actions">
           <button id="download-csv">${T.download}</button>
           <button id="restart">${T.restart}</button>
         </div>
@@ -161,7 +210,7 @@ function startExperiment(selectedLang) {
   timeline.push(simpleButtonPage(T.practiceIntro, T.beginPractice));
 
   const practice = makePracticeTrials();
-  practice.forEach((trial, i) => timeline.push(...makeTrialTimeline(trial, i, 0)));
+  practice.forEach((trial, i) => timeline.push(...makeTrialTimeline(trial, i, 0, practice.length)));
 
   timeline.push(simpleButtonPage(FULL_MODE ? T.mainIntroFull : T.mainIntroDemo, T.beginMain));
   const mainTrials = FULL_MODE ? makeFullMainTrials() : makeDemoMainTrials();
@@ -169,13 +218,13 @@ function startExperiment(selectedLang) {
   if (FULL_MODE) {
     for (let block = 0; block < 3; block++) {
       const blockTrials = mainTrials.slice(block * 24, (block + 1) * 24);
-      blockTrials.forEach((trial, i) => timeline.push(...makeTrialTimeline(trial, block * 24 + i, block + 1)));
+      blockTrials.forEach((trial, i) => timeline.push(...makeTrialTimeline(trial, block * 24 + i, block + 1, mainTrials.length)));
       if (block < 2) {
         timeline.push(simpleButtonPage(`<div class="break-card"><div class="exp-card" style="text-align:center"><h2>${T.breakTitle}</h2><p>${T.breakBody}</p></div></div>`, T.nextBlock));
       }
     }
   } else {
-    mainTrials.forEach((trial, i) => timeline.push(...makeTrialTimeline(trial, i, 1)));
+    mainTrials.forEach((trial, i) => timeline.push(...makeTrialTimeline(trial, i, 1, mainTrials.length)));
   }
 
   jsPsych.run(timeline);

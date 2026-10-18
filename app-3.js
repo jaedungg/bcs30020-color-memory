@@ -1,4 +1,30 @@
-function makeTrialTimeline(trial, trialIndex, blockNumber) {
+function showTrialProgress(trial, trialIndex, totalTrials) {
+  let progress = document.getElementById("trial-progress");
+  if (!progress) {
+    progress = document.createElement("div");
+    progress.id = "trial-progress";
+    progress.className = "trial-progress";
+    progress.setAttribute("role", "status");
+    progress.innerHTML = `
+      <div class="trial-progress-copy"><span></span><strong></strong></div>
+      <div class="trial-progress-track" aria-hidden="true"><span></span></div>`;
+    document.body.appendChild(progress);
+  }
+
+  const phaseLabel = trial.is_practice ? T.practiceProgress : T.mainProgress;
+  progress.querySelector(".trial-progress-copy span").textContent = phaseLabel;
+  progress.querySelector(".trial-progress-copy strong").textContent = `${T.question} ${trialIndex + 1} / ${totalTrials}`;
+  progress.querySelector(".trial-progress-track span").style.width = `${((trialIndex + 1) / totalTrials) * 100}%`;
+  progress.setAttribute("aria-label", `${phaseLabel} ${trialIndex + 1} / ${totalTrials}`);
+  progress.hidden = false;
+}
+
+function hideTrialProgress() {
+  const progress = document.getElementById("trial-progress");
+  if (progress) progress.hidden = true;
+}
+
+function makeTrialTimeline(trial, trialIndex, blockNumber, totalTrials) {
   const cueWord = cueWordForTrial(trial);
   const targetPrototype = categoryByKey(trial.target_category).hue;
   const labelPrototype = trial.label_category ? categoryByKey(trial.label_category).hue : null;
@@ -8,6 +34,7 @@ function makeTrialTimeline(trial, trialIndex, blockNumber) {
   let responseStart = null;
   let responseRt = null;
   let timedOut = false;
+  const updateProgress = () => showTrialProgress(trial, trialIndex, totalTrials);
 
   const common = {
     participant_id: PARTICIPANT_ID,
@@ -37,7 +64,10 @@ function makeTrialTimeline(trial, trialIndex, blockNumber) {
       </div>`,
     choices: "NO_KEYS",
     trial_duration: CONFIG.fixationMs,
-    on_load: startMetronome,
+    on_load: () => {
+      updateProgress();
+      startMetronome();
+    },
   };
 
   const target = {
@@ -46,11 +76,15 @@ function makeTrialTimeline(trial, trialIndex, blockNumber) {
     choices: "NO_KEYS",
     trial_duration: CONFIG.targetMs,
     data: { ...common, trial_stage: "target" },
+    on_load: () => {
+      updateProgress();
+      if (CONFIG.fixationMs <= 0) startMetronome();
+    },
   };
 
   const mask = {
     type: jsPsychHtmlKeyboardResponse,
-    stimulus: `<div class="trial-stage">${maskHtml()}<div class="speech-reminder">${T.fixationSpeech}</div></div>`,
+    stimulus: `<div class="trial-stage">${maskHtml()}</div>`,
     choices: "NO_KEYS",
     trial_duration: CONFIG.maskMs,
     data: { ...common, trial_stage: "mask" },
@@ -125,11 +159,13 @@ function makeTrialTimeline(trial, trialIndex, blockNumber) {
   const feedback = trial.is_practice ? {
     type: jsPsychHtmlButtonResponse,
     stimulus: () => `
-      <div class="exp-card" style="text-align:center">
-        <h2>${T.practiceFeedback}</h2>
-        <div class="feedback-row">
-          <div class="feedback-item"><div class="feedback-label">${T.target}</div><div class="feedback-swatch" style="background:${hsl(trial.target_hue_deg)}"></div></div>
-          <div class="feedback-item"><div class="feedback-label">${T.response}</div><div class="feedback-swatch" style="background:${chosenHue === null ? '#ddd' : hsl(chosenHue)}"></div></div>
+      <div class="feedback-stage">
+        <div class="exp-card" style="text-align:center">
+          <h2>${T.practiceFeedback}</h2>
+          <div class="feedback-row">
+            <div class="feedback-item"><div class="feedback-label">${T.target}</div><div class="feedback-swatch" style="background:${hsl(trial.target_hue_deg)}"></div></div>
+            <div class="feedback-item"><div class="feedback-label">${T.response}</div><div class="feedback-swatch" style="background:${chosenHue === null ? '#ddd' : hsl(chosenHue)}"></div></div>
+          </div>
         </div>
       </div>`,
     choices: [T.continue],
@@ -138,12 +174,15 @@ function makeTrialTimeline(trial, trialIndex, blockNumber) {
 
   const iti = {
     type: jsPsychHtmlKeyboardResponse,
-    stimulus: `<div class="trial-stage"></div>`,
+    stimulus: `<div class="trial-stage"><div class="fixation">+</div></div>`,
     choices: "NO_KEYS",
     trial_duration: CONFIG.itiMs,
     data: { ...common, trial_stage: "iti" },
   };
 
-  return feedback ? [fixation, target, mask, cue, response, feedback, iti] : [fixation, target, mask, cue, response, iti];
+  const stages = CONFIG.fixationMs > 0 ? [fixation, target, mask, cue, response] : [target, mask, cue, response];
+  if (feedback) stages.push(feedback);
+  stages.push(iti);
+  return stages;
 }
 

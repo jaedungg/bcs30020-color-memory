@@ -70,6 +70,16 @@ const TEXT = {
     submit: "이 색으로 제출",
     target: "목표 색",
     response: "내 응답",
+    practiceProgress: "연습",
+    mainProgress: "본 실험",
+    question: "문제",
+    accuracy: "정확도",
+    overallAccuracy: "전체 정확도",
+    meanAccuracy: "평균 정확도",
+    absoluteError: "절대 오차",
+    unanswered: "미응답",
+    trialResults: "문제별 결과",
+    accuracyNote: "정확도는 목표 색과 완전히 일치하면 100%, 색상환에서 정반대(180°)이면 0%가 되도록 환산했습니다. 미응답은 0%로 포함됩니다.",
     practiceFeedback: "연습 피드백",
     continue: "계속",
     breakTitle: "잠시 쉬어가세요",
@@ -114,6 +124,16 @@ const TEXT = {
     submit: "Submit this color",
     target: "Target color",
     response: "My response",
+    practiceProgress: "Practice",
+    mainProgress: "Main task",
+    question: "Trial",
+    accuracy: "Accuracy",
+    overallAccuracy: "Overall accuracy",
+    meanAccuracy: "Mean accuracy",
+    absoluteError: "Absolute error",
+    unanswered: "No response",
+    trialResults: "Trial results",
+    accuracyNote: "Accuracy is scaled from 100% for an exact match to 0% for the opposite point (180°) on the hue wheel. Unanswered trials count as 0%.",
     practiceFeedback: "Practice feedback",
     continue: "Continue",
     breakTitle: "Take a short break",
@@ -153,6 +173,10 @@ function shuffle(arr) {
   return a;
 }
 function hsl(h) { return `hsl(${wrapHue(h)} ${CONFIG.saturation}% ${CONFIG.lightness}%)`; }
+function accuracyFromError(absError) {
+  if (typeof absError !== "number" || !Number.isFinite(absError)) return 0;
+  return Math.max(0, 100 * (1 - Math.min(absError, 180) / 180));
+}
 function categoryIndex(key) { return CATEGORIES.findIndex(c => c.key === key); }
 function categoryByKey(key) { return CATEGORIES.find(c => c.key === key); }
 function neighborKey(key, direction) {

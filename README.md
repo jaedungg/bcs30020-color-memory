@@ -20,7 +20,11 @@ This version reflects the Team 2 protocol dated Oct 15, 2026.
 - Practice: 3 trials, one per condition, with visual feedback.
 - Main task default: **12-trial demo** so the team can test the flow quickly.
 - Full planned task: **72 main trials** via `?full=1`.
+- Every trial screen shows the current trial number, total trial count, and a progress bar (separately for practice and the main task).
+- The completion screen compares the target and selected colors for every main trial and reports per-trial, condition-level, and overall accuracy.
 - Trial-level response data can be downloaded as CSV at the end.
+
+Accuracy is scaled linearly from the circular hue error: an exact match is 100%, and the opposite point on the hue wheel (180° error) is 0%. Timed-out or unanswered trials count as 0% in accuracy averages.
 
 ## Run locally
 
