@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Color Memory × Verbal Labeling Demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/jspsych@8.3.0/css/jspsych.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/jspsych@8.3.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.2.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.1.0"></script>
+</head>
+<body>
+  <main id="language-screen" class="language-screen">
+    <div class="language-card">
+      <div class="eyebrow">BCS.30020 · Team 2 Demo</div>
+      <h1>Color Memory × Verbal Labeling</h1>
+      <p>실험 언어를 선택하세요.<br><span class="muted">Choose the language for the experiment.</span></p>
+      <div class="language-buttons">
+        <button type="button" data-lang="ko">한국어</button>
+        <button type="button" data-lang="en">English</button>
+      </div>
+      <p class="tiny">The selected language is saved with the trial data.</p>
+    </div>
+  </main>
+  <div id="jspsych-target"></div>
+  <noscript>This demo requires JavaScript.</noscript>
+  <script src="app.js"></script>
+</body>
+</html>
