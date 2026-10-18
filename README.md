@@ -75,3 +75,53 @@ The response rows include, among others:
 - Server-side data storage
 
 For a supervised classroom/lab demo, the current CSV download is enough to test the task mechanics.
+
+
+## Supabase result storage
+
+This branch adds automatic trial-level result storage through a Vercel Function.
+
+Architecture:
+
+```text
+Browser experiment
+  -> POST /api/save-results
+  -> Vercel Function
+  -> Supabase REST API
+  -> experiment_trials table
+```
+
+### 1. Create the table
+
+In Supabase, open **SQL Editor** and run:
+
+```text
+supabase/schema.sql
+```
+
+The table is protected from direct browser access. The experiment writes through the server-side Vercel Function only.
+
+### 2. Add Vercel environment variables
+
+In **Vercel > Project Settings > Environment Variables**, add:
+
+```text
+SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
+```
+
+Use a current Supabase **secret key** for the server-side variable. Never put the real secret key in GitHub or browser JavaScript.
+
+Add the variables to Production and Preview if you want database saving to work on both deployment types, then redeploy.
+
+### 3. What happens at the end of the experiment
+
+- Practice and main response trials are sent in one batch.
+- Each row has a unique `row_key`, so retrying the same completed session will update rather than duplicate those rows.
+- The final screen displays database save status.
+- If automatic saving fails, the participant can retry.
+- CSV download remains available as a fallback.
+
+### 4. Local development
+
+The static experiment can still be viewed with a simple local HTTP server, but `/api/save-results` is a Vercel Function. For end-to-end database testing locally, use Vercel CLI or test on a Vercel Preview deployment.
