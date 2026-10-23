@@ -21,8 +21,8 @@ This version reflects the Team 2 protocol dated Oct 15, 2026.
 - Main task default: **12-trial demo** so the team can test the flow quickly.
 - Full planned task: **72 main trials** via `?full=1`.
 - Every trial screen shows the current trial number, total trial count, and a progress bar (separately for practice and the main task).
-- The completion screen compares the target and selected colors for every main trial and reports per-trial, condition-level, and overall accuracy.
-- Trial-level response data can be downloaded as CSV at the end.
+- The participant completion screen confirms completion and database-save status without showing performance results. Add `?demo=1` to show the per-trial, condition-level, and overall accuracy summary used for development.
+- In `?demo=1` mode, trial-level response data can also be downloaded as CSV at the end.
 
 Accuracy is scaled linearly from the circular hue error: an exact match is 100%, and the opposite point on the hue wheel (180° error) is 0%. Timed-out or unanswered trials count as 0% in accuracy averages.
 

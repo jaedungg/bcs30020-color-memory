@@ -4,6 +4,7 @@
 
   Default = short demo (12 main trials + 3 practice trials).
   Add ?full=1 to the URL to run the planned 72-trial main task.
+  Add ?demo=1 to show detailed performance results after completion.
   Add ?pid=P001 to set a participant ID.
 
   This demo implements the team's Oct 15 protocol:
@@ -45,9 +46,6 @@ const TEXT = {
         <span class="demo-badge">테스트 데모</span>
         <h1>색 기억 실험</h1>
         <p>각 시행에서는 먼저 <strong>“바”</strong>를 박자음에 맞춰 반복하면서 색을 봅니다. 색이 사라진 뒤 단어가 나타나면, “바”를 멈추고 <strong>화면의 단어를 그대로 소리 내어 반복</strong>하세요.</p>
-        <div class="note">
-          <strong>모든 조건의 말하기 난이도를 같게 하기 위해</strong> 참가자가 직접 색 이름을 만들어 내지 않습니다. 제시된 단어는 실제 색과 일치할 수도, 다른 색 이름일 수도, 색과 무관한 명사일 수도 있습니다.
-        </div>
         <p>마지막에는 색상환에서 처음 보았던 색을 가능한 정확하게 선택합니다. 본 실험에서는 정답 피드백이 없습니다.</p>
         <p><strong>소리를 켜 주세요.</strong> 박자음은 초당 2번 재생됩니다.</p>
       </div>`,
@@ -85,6 +83,8 @@ const TEXT = {
     breakTitle: "잠시 쉬어가세요",
     breakBody: "준비되면 다음 블록을 시작하세요.",
     nextBlock: "다음 블록 시작",
+    completionTitle: "실험이 완료되었습니다.",
+    completionBody: "응답이 정상적으로 저장되었습니다. 참여해주셔서 감사합니다.",
     finishTitle: "데모 완료",
     finishBody: "아래 버튼으로 시행별 CSV 데이터를 내려받을 수 있습니다.",
     download: "CSV 다운로드",
@@ -102,9 +102,6 @@ const TEXT = {
         <span class="demo-badge">TEST DEMO</span>
         <h1>Color Memory Experiment</h1>
         <p>On each trial, first repeat <strong>“ba”</strong> in time with the beeps while viewing the color. After the color disappears, a word will appear. Stop saying “ba” and <strong>repeat the displayed word aloud</strong> until the color wheel appears.</p>
-        <div class="note">
-          To keep speaking difficulty comparable across conditions, you do <strong>not</strong> generate a color name yourself. The word may match the color, name a different color, or be an unrelated noun.
-        </div>
         <p>Finally, select the original color as accurately as possible from the color wheel. There is no feedback during the main task.</p>
         <p><strong>Please turn your sound on.</strong> The metronome plays two beats per second.</p>
       </div>`,
@@ -139,6 +136,8 @@ const TEXT = {
     breakTitle: "Take a short break",
     breakBody: "Start the next block when you are ready.",
     nextBlock: "Start next block",
+    completionTitle: "Experiment complete.",
+    completionBody: "Your responses have been recorded successfully. Thank you for participating.",
     finishTitle: "Demo complete",
     finishBody: "You can download the trial-level data as a CSV file below.",
     download: "Download CSV",
@@ -152,6 +151,7 @@ const TEXT = {
 
 const params = new URLSearchParams(window.location.search);
 const FULL_MODE = params.get("full") === "1";
+const DEMO_MODE = params.get("demo") === "1";
 const PARTICIPANT_ID = params.get("pid") || `P${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2,6).toUpperCase()}`;
 
 let lang = null;

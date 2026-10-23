@@ -56,12 +56,16 @@ async function saveResultsToDatabase(responseRows) {
     ? {
         saving: "결과를 데이터베이스에 저장하고 있습니다…",
         success: "결과가 데이터베이스에 저장되었습니다.",
-        error: "자동 저장에 실패했습니다. CSV를 다운로드하거나 다시 시도해 주세요.",
+        error: DEMO_MODE
+          ? "자동 저장에 실패했습니다. CSV를 다운로드하거나 다시 시도해 주세요."
+          : "자동 저장에 실패했습니다. 다시 시도해 주세요.",
       }
     : {
         saving: "Saving results to the database…",
         success: "Results were saved to the database.",
-        error: "Automatic saving failed. Download the CSV or try again.",
+        error: DEMO_MODE
+          ? "Automatic saving failed. Download the CSV or try again."
+          : "Automatic saving failed. Please try again.",
       };
 
   setSaveStatus("saving", copy.saving);
@@ -102,85 +106,96 @@ function showFinalScreen() {
   hideTrialProgress();
   const allResponseRows = jsPsych.data.get().filter({ trial_stage: "response" }).values();
   const rows = allResponseRows.filter(row => !row.is_practice);
-  const byCondition = ["neutral", "congruent", "incongruent"].map(cond => {
-    const conditionRows = rows.filter(r => r.condition === cond);
-    const errors = conditionRows.filter(r => typeof r.abs_error_deg === "number").map(r => r.abs_error_deg);
-    const meanError = errors.length ? errors.reduce((a,b) => a+b, 0) / errors.length : null;
-    const meanAccuracy = conditionRows.length
-      ? conditionRows.reduce((sum, row) => sum + accuracyFromError(row.abs_error_deg), 0) / conditionRows.length
-      : null;
-    return { cond, meanError, meanAccuracy };
-  });
-  const overallAccuracy = rows.length
-    ? rows.reduce((sum, row) => sum + accuracyFromError(row.abs_error_deg), 0) / rows.length
-    : 0;
-  const summaryRows = byCondition.map(x => `
-    <tr>
-      <td>${T.condition[x.cond]}</td>
-      <td>${x.meanAccuracy === null ? "—" : x.meanAccuracy.toFixed(1) + "%"}</td>
-      <td>${x.meanError === null ? "—" : x.meanError.toFixed(1) + "°"}</td>
-    </tr>`).join("");
-  const trialResults = rows.map(row => {
-    const answered = typeof row.response_hue_deg === "number";
-    const accuracy = accuracyFromError(row.abs_error_deg);
-    return `
-      <article class="trial-result">
-        <div class="trial-result-heading">
-          <strong>${T.question} ${row.trial_number}</strong>
-          <span>${T.condition[row.condition]}</span>
-        </div>
-        <div class="trial-color-comparison">
-          <div class="result-color">
-            <span class="result-swatch" style="background:${hsl(row.target_hue_deg)}"></span>
-            <span>${T.target}</span>
-          </div>
-          <span class="comparison-arrow" aria-hidden="true">→</span>
-          <div class="result-color">
-            <span class="result-swatch ${answered ? "" : "unanswered"}" style="background:${answered ? hsl(row.response_hue_deg) : "#ddd"}"></span>
-            <span>${answered ? T.response : T.unanswered}</span>
-          </div>
-        </div>
-        <div class="trial-result-metrics">
-          <strong>${T.accuracy} ${accuracy.toFixed(1)}%</strong>
-          <span>${T.absoluteError} ${answered ? row.abs_error_deg.toFixed(1) + "°" : "—"}</span>
-        </div>
-      </article>`;
-  }).join("");
-
   const saveTitle = lang === "ko" ? "데이터 저장" : "Data storage";
   const retryLabel = lang === "ko" ? "다시 저장하기" : "Retry save";
+  let resultsHtml = "";
+  let actionsHtml = "";
+
+  if (DEMO_MODE) {
+    const byCondition = ["neutral", "congruent", "incongruent"].map(cond => {
+      const conditionRows = rows.filter(r => r.condition === cond);
+      const errors = conditionRows.filter(r => typeof r.abs_error_deg === "number").map(r => r.abs_error_deg);
+      const meanError = errors.length ? errors.reduce((a,b) => a+b, 0) / errors.length : null;
+      const meanAccuracy = conditionRows.length
+        ? conditionRows.reduce((sum, row) => sum + accuracyFromError(row.abs_error_deg), 0) / conditionRows.length
+        : null;
+      return { cond, meanError, meanAccuracy };
+    });
+    const overallAccuracy = rows.length
+      ? rows.reduce((sum, row) => sum + accuracyFromError(row.abs_error_deg), 0) / rows.length
+      : 0;
+    const summaryRows = byCondition.map(x => `
+      <tr>
+        <td>${T.condition[x.cond]}</td>
+        <td>${x.meanAccuracy === null ? "—" : x.meanAccuracy.toFixed(1) + "%"}</td>
+        <td>${x.meanError === null ? "—" : x.meanError.toFixed(1) + "°"}</td>
+      </tr>`).join("");
+    const trialResults = rows.map(row => {
+      const answered = typeof row.response_hue_deg === "number";
+      const accuracy = accuracyFromError(row.abs_error_deg);
+      return `
+        <article class="trial-result">
+          <div class="trial-result-heading">
+            <strong>${T.question} ${row.trial_number}</strong>
+            <span>${T.condition[row.condition]}</span>
+          </div>
+          <div class="trial-color-comparison">
+            <div class="result-color">
+              <span class="result-swatch" style="background:${hsl(row.target_hue_deg)}"></span>
+              <span>${T.target}</span>
+            </div>
+            <span class="comparison-arrow" aria-hidden="true">→</span>
+            <div class="result-color">
+              <span class="result-swatch ${answered ? "" : "unanswered"}" style="background:${answered ? hsl(row.response_hue_deg) : "#ddd"}"></span>
+              <span>${answered ? T.response : T.unanswered}</span>
+            </div>
+          </div>
+          <div class="trial-result-metrics">
+            <strong>${T.accuracy} ${accuracy.toFixed(1)}%</strong>
+            <span>${T.absoluteError} ${answered ? row.abs_error_deg.toFixed(1) + "°" : "—"}</span>
+          </div>
+        </article>`;
+    }).join("");
+
+    resultsHtml = `
+      <section class="overall-result" aria-label="${T.overallAccuracy}">
+        <span>${T.overallAccuracy}</span>
+        <strong>${overallAccuracy.toFixed(1)}%</strong>
+      </section>
+      <p class="accuracy-note">${T.accuracyNote}</p>
+      <table class="result-table"><thead><tr><th>${lang === "ko" ? "조건" : "Condition"}</th><th>${T.meanAccuracy}</th><th>${T.absoluteError}</th></tr></thead><tbody>${summaryRows}</tbody></table>
+      <section class="trial-results-section">
+        <h2>${T.trialResults}</h2>
+        <div class="trial-results-grid">${trialResults}</div>
+      </section>`;
+    actionsHtml = `
+      <div class="language-buttons results-actions">
+        <button id="download-csv">${T.download}</button>
+        <button id="restart">${T.restart}</button>
+      </div>`;
+  }
 
   document.body.innerHTML = `
     <main class="language-screen results-screen">
       <div class="language-card results-card">
-        <h1>${T.finishTitle}</h1>
-        <p>${T.finishBody}</p>
-        <section class="overall-result" aria-label="${T.overallAccuracy}">
-          <span>${T.overallAccuracy}</span>
-          <strong>${overallAccuracy.toFixed(1)}%</strong>
-        </section>
-        <p class="accuracy-note">${T.accuracyNote}</p>
-        <table class="result-table"><thead><tr><th>${lang === 'ko' ? '조건' : 'Condition'}</th><th>${T.meanAccuracy}</th><th>${T.absoluteError}</th></tr></thead><tbody>${summaryRows}</tbody></table>
-        <section class="trial-results-section">
-          <h2>${T.trialResults}</h2>
-          <div class="trial-results-grid">${trialResults}</div>
-        </section>
+        <h1>${DEMO_MODE ? T.finishTitle : T.completionTitle}</h1>
+        <p>${DEMO_MODE ? T.finishBody : T.completionBody}</p>
+        ${resultsHtml}
         <div class="save-panel">
           <strong>${saveTitle}</strong>
           <div id="db-save-status" style="margin-top:7px; color:var(--muted);"></div>
           <button id="retry-save" class="primary-btn" style="display:none; margin-top:10px;">${retryLabel}</button>
         </div>
-        <div class="language-buttons results-actions">
-          <button id="download-csv">${T.download}</button>
-          <button id="restart">${T.restart}</button>
-        </div>
+        ${actionsHtml}
       </div>
     </main>`;
 
-  document.getElementById("download-csv").addEventListener("click", () => {
-    jsPsych.data.get().filter({ trial_stage: "response" }).localSave("csv", `color_memory_${PARTICIPANT_ID}_${lang}.csv`);
-  });
-  document.getElementById("restart").addEventListener("click", () => window.location.href = window.location.pathname);
+  if (DEMO_MODE) {
+    document.getElementById("download-csv").addEventListener("click", () => {
+      jsPsych.data.get().filter({ trial_stage: "response" }).localSave("csv", `color_memory_${PARTICIPANT_ID}_${lang}.csv`);
+    });
+    document.getElementById("restart").addEventListener("click", () => window.location.href = window.location.pathname);
+  }
   document.getElementById("retry-save").addEventListener("click", () => saveResultsToDatabase(allResponseRows));
 
   saveResultsToDatabase(allResponseRows);
