@@ -99,10 +99,72 @@ const TEXT = {
     nextBlock: "다음 블록 시작",
     completionTitle: "실험이 완료되었습니다.",
     completionBody: "응답이 정상적으로 저장되었습니다. 참여해주셔서 감사합니다.",
+    savingCompletionTitle: "응답을 저장하고 있습니다…",
+    savingCompletionBody: "잠시만 기다려 주세요.",
+    saveIncompleteBody: "일부 응답을 저장하지 못했습니다. 아래 버튼을 눌러 다시 시도해 주세요.",
     finishTitle: "데모 완료",
     finishBody: "아래 버튼으로 시행별 CSV 데이터를 내려받을 수 있습니다.",
     download: "CSV 다운로드",
     restart: "처음으로 돌아가기",
+    consent: {
+      title: "연구 참여 동의",
+      body: `
+        <p>본 연구는 색상을 기억하고 재현하는 과정과 간단한 언어 반복 과제의 관계를 알아보기 위한 BCS.30020 수업 프로젝트입니다.</p>
+        <p>실험에서는 화면에 제시되는 색상을 기억한 뒤, 안내에 따라 “바” 또는 화면에 나타나는 단어를 소리 내어 반복하게 됩니다. 이후 색상환에서 처음 보았던 색상을 선택합니다. 실험이 끝난 뒤에는 실험 수행 방식에 관한 간단한 설문에 응답하게 됩니다.</p>
+        <p>전체 실험에는 약 15–20분이 소요될 예정입니다.</p>
+        <p>실험 중에는 다음과 같은 정보가 저장됩니다:</p>
+        <ul>
+          <li>임의로 생성된 참가자 ID</li>
+          <li>언어 설정</li>
+          <li>실험 조건 및 제시된 색상/단어</li>
+          <li>선택한 색상과 반응 시간</li>
+          <li>실험 후 설문 응답</li>
+        </ul>
+        <p>이 실험에서는 이름이나 이메일 주소와 같은 직접적인 개인정보를 요구하지 않습니다. 또한 참가자의 음성은 녹음하거나 저장하지 않습니다.</p>
+        <p>본 연구는 일반적인 컴퓨터 과제 수준의 최소한의 위험만을 포함하지만, 화면을 오래 보거나 반복해서 말하는 과정에서 약간의 피로감을 느낄 수 있습니다.</p>
+        <p>연구 참여는 전적으로 자발적입니다. 참여를 원하지 않거나 실험 도중 중단하고 싶은 경우 언제든지 종료할 수 있으며, 이에 따른 불이익은 없습니다.</p>
+        <p>아래의 “동의하고 시작하기”를 선택하면 다음 사항에 동의하는 것으로 간주합니다:</p>
+        <ul>
+          <li>만 18세 이상입니다.</li>
+          <li>위 내용을 읽고 이해했습니다.</li>
+          <li>본 연구에 자발적으로 참여하는 것에 동의합니다.</li>
+        </ul>`,
+      agree: "동의하고 시작하기",
+      decline: "참여하지 않기",
+      declinedTitle: "참여하지 않기를 선택하셨습니다.",
+      declinedBody: "창을 닫으셔도 됩니다.",
+    },
+    questionnaire: {
+      title: "실험 후 설문",
+      intro: "다음 질문에 응답해 주세요. 별도로 표시되지 않은 서술형 응답은 선택 사항입니다.",
+      required: "필수",
+      optional: "선택",
+      submit: "설문 제출",
+      q1: "색상이 화면에 나타나는 동안 안내된 대로 “바, 바, 바…”를 계속 소리 내어 반복했나요?",
+      q2: "단어가 화면에 나타난 동안 안내된 대로 그 단어를 계속 소리 내어 반복했나요?",
+      q3: "색상을 보는 동안, “바”를 반복하면서도 해당 색상의 이름을 속으로 생각하거나 떠올린 적이 있었나요?",
+      q4: "화면에 나타난 단어가 이후 색상을 선택하는 데 영향을 주었다고 느꼈나요?",
+      q5: "색상을 기억할 때 주로 어떤 전략을 사용했나요?",
+      q6: "실험 중 구별하기 어렵거나 애매하게 느껴진 색상이 있었나요?",
+      q7: "실험 중 기술적 문제나 집중을 방해한 일이 있었나요?",
+      q8: "이 실험이 무엇을 알아보기 위한 연구라고 생각하셨나요?",
+      complianceScale: ["전혀 하지 않았다", "거의 하지 않았다", "가끔 했다", "대부분 했다", "항상 했다"],
+      selfLabelScale: ["전혀 없었다", "거의 없었다", "가끔 있었다", "자주 있었다", "거의 항상 그랬다"],
+      influenceScale: ["전혀 그렇지 않았다", "거의 그렇지 않았다", "어느 정도 그랬다", "많이 그랬다", "매우 강하게 그랬다"],
+      memoryOptions: [
+        ["visual_appearance", "색상의 시각적인 모습을 그대로 기억하려고 했다."],
+        ["verbal_label", "색상에 이름을 붙여 기억하려고 했다."],
+        ["word_comparison", "화면에 나타난 단어와 색상을 비교하면서 기억했다."],
+        ["no_strategy", "특별한 전략을 사용하지 않았다."],
+        ["other", "기타"],
+      ],
+      yes: "예",
+      no: "아니요",
+      otherPlaceholder: "기타 전략을 입력해 주세요. (선택)",
+      colorDifficultyPlaceholder: "어떤 색상이 어려웠는지 입력해 주세요. (선택)",
+      technicalIssuePlaceholder: "문제나 방해 요인을 입력해 주세요. (선택)",
+      purposePlaceholder: "응답을 입력해 주세요. (선택)",
+    },
     condition: { neutral: "중립 단어", congruent: "일치 색 단어", incongruent: "불일치 색 단어" },
     category: { red: "빨강", orange: "주황", yellow: "노랑", green: "초록", blue: "파랑", purple: "보라" },
     neutralWords: ["책상", "의자", "창문", "시계", "연필", "가방"],
@@ -151,10 +213,72 @@ const TEXT = {
     nextBlock: "Start next block",
     completionTitle: "Experiment complete.",
     completionBody: "Your responses have been recorded successfully. Thank you for participating.",
+    savingCompletionTitle: "Saving your responses…",
+    savingCompletionBody: "Please wait a moment.",
+    saveIncompleteBody: "Some responses could not be saved. Please use the button below to try again.",
     finishTitle: "Demo complete",
     finishBody: "You can download the trial-level data as a CSV file below.",
     download: "Download CSV",
     restart: "Return to start",
+    consent: {
+      title: "Research Participation Consent",
+      body: `
+        <p>This study is a course project for BCS.30020 investigating how people remember and reproduce colors while performing a simple verbal repetition task.</p>
+        <p>During the experiment, you will view and remember colors, repeat either “ba” or a word shown on the screen according to the instructions, and then reproduce the original color using a color wheel. After the main task, you will complete a short questionnaire about how you performed the task.</p>
+        <p>The experiment is expected to take approximately 15–20 minutes.</p>
+        <p>The following information may be stored during the study:</p>
+        <ul>
+          <li>A randomly generated participant ID</li>
+          <li>Language setting</li>
+          <li>Experimental condition and presented colors/words</li>
+          <li>Selected colors and response times</li>
+          <li>Responses to the post-task questionnaire</li>
+        </ul>
+        <p>We will not ask for directly identifying information such as your name or email address. Your voice will not be recorded or stored.</p>
+        <p>This study involves no more than minimal risks associated with a typical computer-based task, although you may experience mild visual or speaking-related fatigue.</p>
+        <p>Participation is completely voluntary. You may choose not to participate or stop the experiment at any time without penalty.</p>
+        <p>By selecting “I agree and begin”, you confirm that:</p>
+        <ul>
+          <li>You are 18 years of age or older.</li>
+          <li>You have read and understood the information above.</li>
+          <li>You voluntarily agree to participate in this study.</li>
+        </ul>`,
+      agree: "I agree and begin",
+      decline: "I do not wish to participate",
+      declinedTitle: "You have chosen not to participate.",
+      declinedBody: "You may now close this window.",
+    },
+    questionnaire: {
+      title: "Post-task questionnaire",
+      intro: "Please answer the questions below. Text explanations are optional unless otherwise indicated.",
+      required: "Required",
+      optional: "Optional",
+      submit: "Submit questionnaire",
+      q1: "While the color was visible, how consistently did you repeat “ba, ba, ba…” aloud as instructed?",
+      q2: "While the word was displayed, how consistently did you repeat the displayed word aloud as instructed?",
+      q3: "While viewing the color, did you mentally think of or name the color even while repeating “ba”?",
+      q4: "To what extent did you feel that the displayed word influenced the color you selected afterward?",
+      q5: "What strategy did you mainly use to remember the colors?",
+      q6: "Were there any colors that you found difficult or ambiguous to distinguish?",
+      q7: "Did you experience any technical problems or major distractions during the experiment?",
+      q8: "What do you think this experiment was investigating?",
+      complianceScale: ["Never", "Rarely", "Sometimes", "Most of the time", "Always"],
+      selfLabelScale: ["Never", "Rarely", "Sometimes", "Often", "Almost always"],
+      influenceScale: ["Not at all", "Very little", "Somewhat", "A lot", "Very strongly"],
+      memoryOptions: [
+        ["visual_appearance", "I tried to remember the visual appearance of the color."],
+        ["verbal_label", "I tried to remember the color by giving it a name."],
+        ["word_comparison", "I compared the color with the word shown on the screen."],
+        ["no_strategy", "I did not use any particular strategy."],
+        ["other", "Other"],
+      ],
+      yes: "Yes",
+      no: "No",
+      otherPlaceholder: "Describe the other strategy. (Optional)",
+      colorDifficultyPlaceholder: "Which colors were difficult? (Optional)",
+      technicalIssuePlaceholder: "Describe the problem or distraction. (Optional)",
+      purposePlaceholder: "Enter your response. (Optional)",
+    },
     condition: { neutral: "Neutral word", congruent: "Congruent color word", incongruent: "Incongruent color word" },
     category: { red: "red", orange: "orange", yellow: "yellow", green: "green", blue: "blue", purple: "purple" },
     neutralWords: ["table", "chair", "window", "clock", "pencil", "bag"],
@@ -173,6 +297,8 @@ let jsPsych = null;
 let audioCtx = null;
 let metronomeTimer = null;
 let metronomeOn = false;
+let consentGiven = false;
+let consentedAt = null;
 
 function wrapHue(h) { return ((h % 360) + 360) % 360; }
 function circularDifference(a, b) { return ((a - b + 540) % 360) - 180; }

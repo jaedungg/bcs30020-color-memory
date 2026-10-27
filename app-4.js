@@ -3,6 +3,10 @@ const SESSION_ID = (window.crypto && crypto.randomUUID)
   : `S${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
 
 let dbSaveInProgress = false;
+let trialSaveState = "idle";
+let sessionSaveState = "idle";
+let questionnaireResponses = null;
+let surveySubmittedAt = null;
 
 function buildDbRows(rows) {
   const savedAt = new Date().toISOString();
@@ -48,28 +52,47 @@ function setSaveStatus(kind, message) {
   if (retry) retry.style.display = kind === "error" ? "inline-block" : "none";
 }
 
-async function saveResultsToDatabase(responseRows) {
-  if (dbSaveInProgress) return;
-  dbSaveInProgress = true;
-
-  const copy = lang === "ko"
+function saveStatusCopy() {
+  return lang === "ko"
     ? {
-        saving: "결과를 데이터베이스에 저장하고 있습니다…",
-        success: "결과가 데이터베이스에 저장되었습니다.",
+        saving: "시행 결과와 설문 응답을 데이터베이스에 저장하고 있습니다…",
+        success: "시행 결과와 설문 응답이 데이터베이스에 저장되었습니다.",
         error: DEMO_MODE
-          ? "자동 저장에 실패했습니다. CSV를 다운로드하거나 다시 시도해 주세요."
-          : "자동 저장에 실패했습니다. 다시 시도해 주세요.",
+          ? "일부 데이터의 자동 저장에 실패했습니다. CSV를 다운로드하거나 다시 시도해 주세요."
+          : "일부 데이터의 자동 저장에 실패했습니다. 다시 시도해 주세요.",
       }
     : {
-        saving: "Saving results to the database…",
-        success: "Results were saved to the database.",
+        saving: "Saving trial results and questionnaire responses to the database…",
+        success: "Trial results and questionnaire responses were saved to the database.",
         error: DEMO_MODE
-          ? "Automatic saving failed. Download the CSV or try again."
-          : "Automatic saving failed. Please try again.",
+          ? "Some data could not be saved automatically. Download the CSV or try again."
+          : "Some data could not be saved automatically. Please try again.",
       };
+}
 
-  setSaveStatus("saving", copy.saving);
+function updateCompletionAndSaveStatus() {
+  const copy = saveStatusCopy();
+  const title = document.getElementById("completion-title");
+  const body = document.getElementById("completion-body");
+  const bothFinished = [trialSaveState, sessionSaveState]
+    .every(state => state === "success" || state === "error");
+  const allSaved = trialSaveState === "success" && sessionSaveState === "success";
 
+  if (!bothFinished) {
+    setSaveStatus("saving", copy.saving);
+    return;
+  }
+
+  if (title) title.textContent = DEMO_MODE ? T.finishTitle : T.completionTitle;
+  if (body) {
+    body.textContent = allSaved
+      ? (DEMO_MODE ? T.finishBody : T.completionBody)
+      : T.saveIncompleteBody;
+  }
+  setSaveStatus(allSaved ? "success" : "error", allSaved ? copy.success : copy.error);
+}
+
+async function saveResultsToDatabase(responseRows) {
   try {
     const response = await fetch("/api/save-results", {
       method: "POST",
@@ -83,13 +106,63 @@ async function saveResultsToDatabase(responseRows) {
     if (!response.ok) throw new Error(`save-results returned ${response.status}`);
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || "Unknown save error");
-    setSaveStatus("success", copy.success);
+    trialSaveState = "success";
   } catch (error) {
     console.error("Database save failed:", error);
-    setSaveStatus("error", copy.error);
-  } finally {
-    dbSaveInProgress = false;
+    trialSaveState = "error";
   }
+}
+
+function buildSessionRow() {
+  return {
+    session_id: SESSION_ID,
+    participant_id: PARTICIPANT_ID,
+    language_version: lang,
+    run_mode: FULL_MODE ? "full72" : "demo12",
+    consent_given: consentGiven,
+    consented_at: consentedAt,
+    ...(questionnaireResponses || {}),
+    completed: true,
+    survey_submitted_at: surveySubmittedAt,
+  };
+}
+
+async function saveSessionToDatabase() {
+  try {
+    const response = await fetch("/api/save-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildSessionRow()),
+    });
+
+    if (!response.ok) throw new Error(`save-session returned ${response.status}`);
+    const result = await response.json();
+    if (!result.ok) throw new Error(result.error || "Unknown save error");
+    sessionSaveState = "success";
+  } catch (error) {
+    console.error("Session save failed:", error);
+    sessionSaveState = "error";
+  }
+}
+
+async function saveAllData(responseRows) {
+  if (dbSaveInProgress) return;
+  dbSaveInProgress = true;
+
+  const saves = [];
+  if (trialSaveState !== "success") {
+    trialSaveState = "saving";
+    saves.push(saveResultsToDatabase(responseRows));
+  }
+  if (sessionSaveState !== "success") {
+    sessionSaveState = "saving";
+    saves.push(saveSessionToDatabase());
+  }
+  updateCompletionAndSaveStatus();
+
+  await Promise.all(saves);
+  dbSaveInProgress = false;
+  updateCompletionAndSaveStatus();
 }
 
 function simpleButtonPage(html, buttonText) {
@@ -98,6 +171,174 @@ function simpleButtonPage(html, buttonText) {
     stimulus: html,
     choices: [buttonText],
     on_load: hideTrialProgress,
+  };
+}
+
+function showConsentScreen(selectedLang) {
+  lang = selectedLang;
+  T = TEXT[lang];
+  document.documentElement.lang = T.htmlLang;
+  document.title = T.title;
+
+  const screen = document.getElementById("language-screen");
+  screen.innerHTML = `
+    <div class="language-card consent-card">
+      <h1>${T.consent.title}</h1>
+      <div class="consent-copy">${T.consent.body}</div>
+      <div class="consent-actions">
+        <button type="button" id="consent-agree" class="primary-btn">${T.consent.agree}</button>
+        <button type="button" id="consent-decline" class="secondary-btn">${T.consent.decline}</button>
+      </div>
+    </div>`;
+
+  document.getElementById("consent-agree").addEventListener("click", () => {
+    if (consentGiven) return;
+    consentGiven = true;
+    consentedAt = new Date().toISOString();
+    startExperiment(selectedLang);
+  });
+
+  document.getElementById("consent-decline").addEventListener("click", () => {
+    screen.innerHTML = `
+      <div class="language-card decline-card">
+        <h1>${T.consent.declinedTitle}</h1>
+        <p>${T.consent.declinedBody}</p>
+      </div>`;
+  });
+}
+
+function scaleOptions(name, labels) {
+  return labels.map((label, index) => `
+    <label class="scale-option">
+      <input type="radio" name="${name}" value="${index + 1}" required>
+      <span><strong>${index + 1}</strong>${label}</span>
+    </label>`).join("");
+}
+
+function choiceOptions(name, options) {
+  return options.map(([value, label]) => `
+    <label class="choice-option">
+      <input type="radio" name="${name}" value="${value}" required>
+      <span>${label}</span>
+    </label>`).join("");
+}
+
+function makeQuestionnaireTrial() {
+  const Q = T.questionnaire;
+  return {
+    type: jsPsychHtmlKeyboardResponse,
+    choices: "NO_KEYS",
+    stimulus: `
+      <div class="questionnaire-stage">
+        <form id="post-task-questionnaire" class="exp-card questionnaire-card">
+          <h1>${Q.title}</h1>
+          <p class="questionnaire-intro">${Q.intro}</p>
+
+          <fieldset class="questionnaire-item">
+            <legend>1. ${Q.q1} <span class="required-label">${Q.required}</span></legend>
+            <div class="scale-options">${scaleOptions("ba_compliance", Q.complianceScale)}</div>
+          </fieldset>
+
+          <fieldset class="questionnaire-item">
+            <legend>2. ${Q.q2} <span class="required-label">${Q.required}</span></legend>
+            <div class="scale-options">${scaleOptions("cue_compliance", Q.complianceScale)}</div>
+          </fieldset>
+
+          <fieldset class="questionnaire-item">
+            <legend>3. ${Q.q3} <span class="required-label">${Q.required}</span></legend>
+            <div class="scale-options">${scaleOptions("self_labeling_frequency", Q.selfLabelScale)}</div>
+          </fieldset>
+
+          <fieldset class="questionnaire-item">
+            <legend>4. ${Q.q4} <span class="required-label">${Q.required}</span></legend>
+            <div class="scale-options">${scaleOptions("perceived_word_influence", Q.influenceScale)}</div>
+          </fieldset>
+
+          <fieldset class="questionnaire-item">
+            <legend>5. ${Q.q5} <span class="required-label">${Q.required}</span></legend>
+            <div class="choice-options">${choiceOptions("memory_strategy", Q.memoryOptions)}</div>
+            <div id="memory-strategy-other-wrap" class="conditional-input" hidden>
+              <label for="memory-strategy-other">${Q.memoryOptions[4][1]} <span class="optional-label">${Q.optional}</span></label>
+              <input type="text" id="memory-strategy-other" name="memory_strategy_other" maxlength="1000" placeholder="${Q.otherPlaceholder}">
+            </div>
+          </fieldset>
+
+          <fieldset class="questionnaire-item">
+            <legend>6. ${Q.q6} <span class="required-label">${Q.required}</span></legend>
+            <div class="yes-no-options">
+              <label class="choice-option"><input type="radio" name="color_difficulty" value="yes" required><span>${Q.yes}</span></label>
+              <label class="choice-option"><input type="radio" name="color_difficulty" value="no" required><span>${Q.no}</span></label>
+            </div>
+            <div id="color-difficulty-wrap" class="conditional-input" hidden>
+              <label for="color-difficulty-text">${Q.colorDifficultyPlaceholder}</label>
+              <input type="text" id="color-difficulty-text" name="color_difficulty_text" maxlength="1000" placeholder="${Q.colorDifficultyPlaceholder}">
+            </div>
+          </fieldset>
+
+          <fieldset class="questionnaire-item">
+            <legend>7. ${Q.q7} <span class="required-label">${Q.required}</span></legend>
+            <div class="yes-no-options">
+              <label class="choice-option"><input type="radio" name="technical_issue" value="yes" required><span>${Q.yes}</span></label>
+              <label class="choice-option"><input type="radio" name="technical_issue" value="no" required><span>${Q.no}</span></label>
+            </div>
+            <div id="technical-issue-wrap" class="conditional-input" hidden>
+              <label for="technical-issue-text">${Q.technicalIssuePlaceholder}</label>
+              <input type="text" id="technical-issue-text" name="technical_issue_text" maxlength="1000" placeholder="${Q.technicalIssuePlaceholder}">
+            </div>
+          </fieldset>
+
+          <fieldset class="questionnaire-item">
+            <legend>8. ${Q.q8} <span class="optional-label">${Q.optional}</span></legend>
+            <textarea name="guessed_study_purpose" rows="5" maxlength="5000" placeholder="${Q.purposePlaceholder}"></textarea>
+          </fieldset>
+
+          <button type="submit" class="primary-btn questionnaire-submit">${Q.submit}</button>
+        </form>
+      </div>`,
+    on_load: () => {
+      stopMetronome();
+      hideTrialProgress();
+      const form = document.getElementById("post-task-questionnaire");
+
+      const toggleConditional = (name, showValue, wrapperId) => {
+        form.querySelectorAll(`input[name="${name}"]`).forEach(input => {
+          input.addEventListener("change", () => {
+            document.getElementById(wrapperId).hidden = input.value !== showValue;
+          });
+        });
+      };
+      toggleConditional("memory_strategy", "other", "memory-strategy-other-wrap");
+      toggleConditional("color_difficulty", "yes", "color-difficulty-wrap");
+      toggleConditional("technical_issue", "yes", "technical-issue-wrap");
+
+      form.addEventListener("submit", event => {
+        event.preventDefault();
+        const values = new FormData(form);
+        const optionalText = name => {
+          const value = String(values.get(name) || "").trim();
+          return value || null;
+        };
+        const memoryStrategy = String(values.get("memory_strategy"));
+        const colorDifficulty = values.get("color_difficulty") === "yes";
+        const technicalIssue = values.get("technical_issue") === "yes";
+
+        questionnaireResponses = {
+          ba_compliance: Number(values.get("ba_compliance")),
+          cue_compliance: Number(values.get("cue_compliance")),
+          self_labeling_frequency: Number(values.get("self_labeling_frequency")),
+          perceived_word_influence: Number(values.get("perceived_word_influence")),
+          memory_strategy: memoryStrategy,
+          memory_strategy_other: memoryStrategy === "other" ? optionalText("memory_strategy_other") : null,
+          color_difficulty: colorDifficulty,
+          color_difficulty_text: colorDifficulty ? optionalText("color_difficulty_text") : null,
+          technical_issue: technicalIssue,
+          technical_issue_text: technicalIssue ? optionalText("technical_issue_text") : null,
+          guessed_study_purpose: optionalText("guessed_study_purpose"),
+        };
+        surveySubmittedAt = new Date().toISOString();
+        jsPsych.finishTrial({ trial_stage: "post_task_questionnaire" });
+      });
+    },
   };
 }
 
@@ -178,8 +419,8 @@ function showFinalScreen() {
   document.body.innerHTML = `
     <main class="language-screen results-screen">
       <div class="language-card results-card">
-        <h1>${DEMO_MODE ? T.finishTitle : T.completionTitle}</h1>
-        <p>${DEMO_MODE ? T.finishBody : T.completionBody}</p>
+        <h1 id="completion-title">${T.savingCompletionTitle}</h1>
+        <p id="completion-body">${T.savingCompletionBody}</p>
         ${resultsHtml}
         <div class="save-panel">
           <strong>${saveTitle}</strong>
@@ -196,12 +437,13 @@ function showFinalScreen() {
     });
     document.getElementById("restart").addEventListener("click", () => window.location.href = window.location.pathname);
   }
-  document.getElementById("retry-save").addEventListener("click", () => saveResultsToDatabase(allResponseRows));
+  document.getElementById("retry-save").addEventListener("click", () => saveAllData(allResponseRows));
 
-  saveResultsToDatabase(allResponseRows);
+  saveAllData(allResponseRows);
 }
 
 function startExperiment(selectedLang) {
+  if (!consentGiven || !consentedAt) return;
   lang = selectedLang;
   T = TEXT[lang];
   document.documentElement.lang = T.htmlLang;
@@ -242,9 +484,11 @@ function startExperiment(selectedLang) {
     mainTrials.forEach((trial, i) => timeline.push(...makeTrialTimeline(trial, i, 1, mainTrials.length)));
   }
 
+  timeline.push(makeQuestionnaireTrial());
+
   jsPsych.run(timeline);
 }
 
 document.querySelectorAll("[data-lang]").forEach(btn => {
-  btn.addEventListener("click", () => startExperiment(btn.dataset.lang));
+  btn.addEventListener("click", () => showConsentScreen(btn.dataset.lang));
 });

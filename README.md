@@ -4,7 +4,8 @@ This version reflects the Team 2 protocol dated Oct 15, 2026.
 
 ## What changed
 
-- One start page with **한국어 / English** language selection.
+- Language selection is followed by bilingual consent before jsPsych starts.
+- A required post-task questionnaire is shown after the main task and before completion.
 - Three conditions are **randomly intermixed trial by trial**:
   1. Neutral word
   2. Congruent color word
@@ -74,16 +75,15 @@ The response rows include, among others:
 
 - Microphone recording / automatic articulation verification
 - Color-vision screening
-- Consent/demographic questionnaire
+- Demographic questionnaire
 - Experimenter interface for marking articulation failures
-- Server-side data storage
 
 For a supervised classroom/lab demo, the current CSV download is enough to test the task mechanics.
 
 
 ## Supabase result storage
 
-This branch adds automatic trial-level result storage through a Vercel Function.
+Trial results and session-level consent/questionnaire data are stored through separate Vercel Functions.
 
 Architecture:
 
@@ -93,6 +93,12 @@ Browser experiment
   -> Vercel Function
   -> Supabase REST API
   -> experiment_trials table
+
+Browser experiment
+  -> POST /api/save-session
+  -> Vercel Function
+  -> Supabase REST API
+  -> experiment_sessions table
 ```
 
 ### 1. Create the table
@@ -101,6 +107,7 @@ In Supabase, open **SQL Editor** and run:
 
 ```text
 supabase/schema.sql
+supabase/experiment_sessions.sql
 ```
 
 The table is protected from direct browser access. The experiment writes through the server-side Vercel Function only.
@@ -121,11 +128,13 @@ Add the variables to Production and Preview if you want database saving to work 
 ### 3. What happens at the end of the experiment
 
 - Practice and main response trials are sent in one batch.
+- Consent and questionnaire responses are upserted as one session row.
+- Both tables use the same `session_id`, `participant_id`, `language_version`, and `run_mode`.
 - Each row has a unique `row_key`, so retrying the same completed session will update rather than duplicate those rows.
-- The final screen displays database save status.
-- If automatic saving fails, the participant can retry.
+- The final screen reports success only after both save requests finish.
+- If either request fails, the retry button retries only the failed save.
 - In `?demo=1` mode, CSV download remains available as a fallback.
 
 ### 4. Local development
 
-The static experiment can still be viewed with a simple local HTTP server, but `/api/save-results` is a Vercel Function. For end-to-end database testing locally, use Vercel CLI or test on a Vercel Preview deployment.
+The static experiment can still be viewed with a simple local HTTP server, but the `/api/save-results` and `/api/save-session` routes are Vercel Functions. For end-to-end database testing locally, use Vercel CLI or test on a Vercel Preview deployment.
