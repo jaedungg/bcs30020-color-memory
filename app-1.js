@@ -136,7 +136,7 @@ const TEXT = {
     },
     questionnaire: {
       title: "실험 후 설문",
-      intro: "다음 질문에 응답해 주세요. 별도로 표시되지 않은 서술형 응답은 선택 사항입니다.",
+      intro: "다음 질문에 응답해 주세요. 서술형 응답은 선택 사항입니다.",
       required: "필수",
       optional: "선택",
       submit: "설문 제출",
@@ -250,7 +250,7 @@ const TEXT = {
     },
     questionnaire: {
       title: "Post-task questionnaire",
-      intro: "Please answer the questions below. Text explanations are optional unless otherwise indicated.",
+      intro: "Please answer the questions below. Text explanations are optional.",
       required: "Required",
       optional: "Optional",
       submit: "Submit questionnaire",
