@@ -1,13 +1,13 @@
 /*
-  Color Memory & Verbal Labeling — protocol demo
+  Color Memory & Verbal Labeling — experiment
   BCS.30020 Team 2
 
-  Default = short demo (12 main trials + 3 practice trials).
-  Add ?full=1 to the URL to run the planned 72-trial main task.
-  Add ?demo=1 to show detailed performance results after completion.
+  Default = full experiment (72 main trials + 3 practice trials).
+  Add ?demo=1 to run the 12-trial demo and show detailed results.
+  Add ?demo=1&full=1 to test the full task with detailed results.
   Add ?pid=P001 to set a participant ID.
 
-  This demo implements the team's Oct 15 protocol:
+  This experiment implements the team's Oct 15 protocol:
   fixation + “ba” -> target + “ba” -> mask + “ba” -> cue word repetition ->
   randomized 360° hue wheel -> inter-trial interval.
 */
@@ -21,11 +21,11 @@ const CONFIG = {
   responseTimeoutMs: 10000,
   saturation: 80,
   lightness: 50,
-  jitterDeg: 5,
+  jitterDeg: 3,
   metronomeIntervalMs: 500, // 2 beats / second
   practiceCount: 3,
   demoRepetitionsPerTargetCondition: 0, // custom demo generator below
-  fullRepetitionsPerTargetCondition: 4,
+  fullRepetitionsPerTargetCondition: 2,
 };
 
 const CATEGORIES = [
@@ -37,13 +37,27 @@ const CATEGORIES = [
   { key: "purple", hue: 275, hex: "#9119E6" },
 ];
 
+const TARGETS = [
+  { id: "T01", category: "red", hue: 352 },
+  { id: "T02", category: "red", hue: 8 },
+  { id: "T03", category: "orange", hue: 24 },
+  { id: "T04", category: "orange", hue: 36 },
+  { id: "T05", category: "yellow", hue: 50 },
+  { id: "T06", category: "yellow", hue: 60 },
+  { id: "T07", category: "green", hue: 110 },
+  { id: "T08", category: "green", hue: 140 },
+  { id: "T09", category: "blue", hue: 210 },
+  { id: "T10", category: "blue", hue: 235 },
+  { id: "T11", category: "purple", hue: 265 },
+  { id: "T12", category: "purple", hue: 285 },
+];
+
 const TEXT = {
   ko: {
     htmlLang: "ko",
     title: "색 기억 × 언어적 단어 반복",
     intro: `
       <div class="exp-card">
-        <span class="demo-badge">테스트 데모</span>
         <h1>색 기억 실험</h1>
         <p>각 시행에서는 먼저 <strong>“바”</strong>를 박자음에 맞춰 반복하면서 색을 봅니다. 색이 사라진 뒤 단어가 나타나면, “바”를 멈추고 <strong>화면의 단어를 그대로 소리 내어 반복</strong>하세요.</p>
         <p>마지막에는 색상환에서 처음 보았던 색을 가능한 정확하게 선택합니다. 본 실험에서는 정답 피드백이 없습니다.</p>
@@ -91,7 +105,7 @@ const TEXT = {
     restart: "처음으로 돌아가기",
     condition: { neutral: "중립 단어", congruent: "일치 색 단어", incongruent: "불일치 색 단어" },
     category: { red: "빨강", orange: "주황", yellow: "노랑", green: "초록", blue: "파랑", purple: "보라" },
-    neutralWords: ["책상", "의자", "창문", "시계", "가방", "연필"],
+    neutralWords: ["책상", "의자", "창문", "시계", "연필", "가방"],
     ba: "바",
   },
   en: {
@@ -99,7 +113,6 @@ const TEXT = {
     title: "Color Memory × Verbal Labeling",
     intro: `
       <div class="exp-card">
-        <span class="demo-badge">TEST DEMO</span>
         <h1>Color Memory Experiment</h1>
         <p>On each trial, first repeat <strong>“ba”</strong> in time with the beeps while viewing the color. After the color disappears, a word will appear. Stop saying “ba” and <strong>repeat the displayed word aloud</strong> until the color wheel appears.</p>
         <p>Finally, select the original color as accurately as possible from the color wheel. There is no feedback during the main task.</p>
@@ -144,14 +157,14 @@ const TEXT = {
     restart: "Return to start",
     condition: { neutral: "Neutral word", congruent: "Congruent color word", incongruent: "Incongruent color word" },
     category: { red: "red", orange: "orange", yellow: "yellow", green: "green", blue: "blue", purple: "purple" },
-    neutralWords: ["table", "chair", "window", "clock", "pencil", "bottle"],
+    neutralWords: ["table", "chair", "window", "clock", "pencil", "bag"],
     ba: "ba",
   },
 };
 
 const params = new URLSearchParams(window.location.search);
-const FULL_MODE = params.get("full") === "1";
 const DEMO_MODE = params.get("demo") === "1";
+const FULL_MODE = !DEMO_MODE || params.get("full") === "1";
 const PARTICIPANT_ID = params.get("pid") || `P${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2,6).toUpperCase()}`;
 
 let lang = null;
@@ -226,33 +239,40 @@ function maskHtml() {
 }
 
 function makePracticeTrials() {
-  // One trial per condition, hues deliberately offset from the six prototypes.
-  const practiceHues = [15, 88, 195];
-  const practiceCats = ["red", "yellow", "blue"];
-  const conditions = shuffle(["neutral", "congruent", "incongruent"]);
-  return conditions.map((condition, i) => {
-    const target_category = practiceCats[i];
-    let label_category = null;
-    let label_direction = null;
-    if (condition === "incongruent") {
-      label_direction = i % 2 === 0 ? "cw" : "ccw";
-      label_category = neighborKey(target_category, label_direction);
-    }
-    if (condition === "neutral") {
-      label_direction = i % 2 === 0 ? "cw" : "ccw";
-      label_category = neighborKey(target_category, label_direction); // comparison direction only
-    }
-    return {
+  return [
+    {
       is_practice: true,
-      condition,
-      target_id: `PRACTICE_${i+1}`,
-      target_category,
-      target_hue_deg: practiceHues[i],
-      jitter_deg: null,
-      label_category,
-      label_direction,
-      neutral_word: T.neutralWords[i % T.neutralWords.length],
-    };
-  });
+      condition: "congruent",
+      target_id: "P1",
+      target_category: "red",
+      target_hue_deg: 0,
+      jitter_deg: 0,
+      label_category: "red",
+      label_direction: null,
+      neutral_word: null,
+    },
+    {
+      is_practice: true,
+      condition: "incongruent",
+      target_id: "P2",
+      target_category: "orange",
+      target_hue_deg: 30,
+      jitter_deg: 0,
+      label_category: "yellow",
+      label_direction: "cw",
+      neutral_word: null,
+    },
+    {
+      is_practice: true,
+      condition: "neutral",
+      target_id: "P3",
+      target_category: "yellow",
+      target_hue_deg: 55,
+      jitter_deg: 0,
+      label_category: null,
+      label_direction: null,
+      neutral_word: T.neutralWords[0],
+    },
+  ];
 }
 

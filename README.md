@@ -1,4 +1,4 @@
-# Color Memory & Verbal Labeling — jsPsych Demo v4
+# Color Memory & Verbal Labeling — jsPsych Experiment
 
 This version reflects the Team 2 protocol dated Oct 15, 2026.
 
@@ -15,11 +15,11 @@ This version reflects the Team 2 protocol dated Oct 15, 2026.
 - A metronome beep runs at **2 beats/second** during articulation.
 - Trial sequence: 500 ms fixation → 3000 ms target → 300 ms mask → 3000 ms cue/retention → hue-wheel response (max 10 s) → 500 ms ITI.
 - Response uses a **360° HSL hue wheel**, randomly rotated on each trial.
-- Six target prototypes: red 0°, orange 30°, yellow 55°, green 120°, blue 220°, purple 275°, with ±5° jitter on main trials.
-- Incongruent labels use one of the two neighboring categories; directions are balanced in the full version.
-- Practice: 3 trials, one per condition, with visual feedback.
-- Main task default: **12-trial demo** so the team can test the flow quickly.
-- Full planned task: **72 main trials** via `?full=1`.
+- Six category prototypes remain available for verbal labels and bias calculations: red 0°, orange 30°, yellow 55°, green 120°, blue 220°, purple 275°.
+- Twelve main targets (`T01`–`T12`) use finalized base hues with ±3° jitter.
+- The full design has 72 main trials: 12 targets × 3 conditions × 2 repetitions, balanced across three 24-trial blocks.
+- Practice uses fixed trials P1 (congruent red), P2 (incongruent orange/yellow), and P3 (neutral yellow/table), with visual feedback.
+- The default URL runs the full 72-trial task. Add `?demo=1` for the short 12-trial demo, or `?demo=1&full=1` to test all 72 trials with detailed results.
 - Every trial screen shows the current trial number, total trial count, and a progress bar (separately for practice and the main task).
 - The participant completion screen confirms completion and database-save status without showing performance results. Add `?demo=1` to show the per-trial, condition-level, and overall accuracy summary used for development.
 - In `?demo=1` mode, trial-level response data can also be downloaded as CSV at the end.
@@ -38,10 +38,10 @@ python3 -m http.server 8000
 
 Then open:
 
-- Demo: `http://localhost:8000`
-- Full 72-trial version: `http://localhost:8000/?full=1`
+- Full 72-trial version: `http://localhost:8000`
+- Short demo: `http://localhost:8000/?demo=1`
+- Full version with detailed results: `http://localhost:8000/?demo=1&full=1`
 - Fixed participant ID: `http://localhost:8000/?pid=P001`
-- Both: `http://localhost:8000/?full=1&pid=P001`
 
 ## Data fields implemented
 
@@ -124,7 +124,7 @@ Add the variables to Production and Preview if you want database saving to work 
 - Each row has a unique `row_key`, so retrying the same completed session will update rather than duplicate those rows.
 - The final screen displays database save status.
 - If automatic saving fails, the participant can retry.
-- CSV download remains available as a fallback.
+- In `?demo=1` mode, CSV download remains available as a fallback.
 
 ### 4. Local development
 

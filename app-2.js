@@ -1,71 +1,139 @@
 function makeDemoMainTrials() {
-  // 12 trials: each condition 4 times, broad coverage of the 6 target categories.
-  const conditions = shuffle(["neutral","congruent","incongruent","neutral","congruent","incongruent","neutral","congruent","incongruent","neutral","congruent","incongruent"]);
-  const cats = shuffle([...CATEGORIES, ...CATEGORIES]).slice(0, 12);
-  const dirCounters = { neutral: 0, incongruent: 0 };
+  const conditions = shuffle([
+    "neutral", "congruent", "incongruent",
+    "neutral", "congruent", "incongruent",
+    "neutral", "congruent", "incongruent",
+    "neutral", "congruent", "incongruent",
+  ]);
+  const targets = shuffle(TARGETS);
+  const neutralWords = shuffle(T.neutralWords.flatMap(word => [word, word]));
+  const directionCounts = { neutral: 0, congruent: 0, incongruent: 0 };
+  let neutralIndex = 0;
+
   return conditions.map((condition, i) => {
-    const cat = cats[i];
-    const jitter = randomInt(-CONFIG.jitterDeg, CONFIG.jitterDeg);
-    let label_category = null;
-    let label_direction = null;
-    if (condition === "incongruent" || condition === "neutral") {
-      const count = dirCounters[condition]++;
-      label_direction = count % 2 === 0 ? "cw" : "ccw";
-      label_category = neighborKey(cat.key, label_direction);
-    }
-    return {
-      is_practice: false,
-      condition,
-      target_id: cat.key.toUpperCase(),
-      target_category: cat.key,
-      target_hue_deg: wrapHue(cat.hue + jitter),
-      jitter_deg: jitter,
-      label_category,
-      label_direction,
-      neutral_word: T.neutralWords[i % T.neutralWords.length],
-    };
+    const direction = directionCounts[condition]++ % 2 === 0 ? "cw" : "ccw";
+    const neutralWord = condition === "neutral" ? neutralWords[neutralIndex++] : null;
+    return createMainTrial(targets[i], condition, direction, neutralWord);
   });
 }
 
-function makeFullMainTrials() {
-  // Build a separate 24-trial pool for each condition (6 targets × 4 reps).
-  // Then distribute 8 trials from each condition into each block so every
-  // 24-trial block contains exactly 8 neutral, 8 congruent, and 8 incongruent trials.
-  const pools = { neutral: [], congruent: [], incongruent: [] };
+function createMainTrial(target, condition, direction, neutralWord = null) {
+  const jitter = randomInt(-CONFIG.jitterDeg, CONFIG.jitterDeg);
+  const labelCategory = condition === "congruent"
+    ? target.category
+    : neighborKey(target.category, direction);
+
+  return {
+    is_practice: false,
+    condition,
+    target_id: target.id,
+    target_category: target.category,
+    target_hue_deg: wrapHue(target.hue + jitter),
+    jitter_deg: jitter,
+    label_category: labelCategory,
+    label_direction: direction,
+    neutral_word: neutralWord,
+  };
+}
+
+const BLOCK_ASSIGNMENT_PATTERNS = [
+  [
+    [{ condition: "congruent", direction: "cw" }, { condition: "incongruent", direction: "cw" }],
+    [{ condition: "congruent", direction: "ccw" }, { condition: "neutral", direction: "cw" }],
+    [{ condition: "incongruent", direction: "ccw" }, { condition: "neutral", direction: "ccw" }],
+  ],
+  [
+    [{ condition: "congruent", direction: "cw" }, { condition: "neutral", direction: "cw" }],
+    [{ condition: "incongruent", direction: "cw" }, { condition: "neutral", direction: "ccw" }],
+    [{ condition: "congruent", direction: "ccw" }, { condition: "incongruent", direction: "ccw" }],
+  ],
+  [
+    [{ condition: "incongruent", direction: "cw" }, { condition: "neutral", direction: "cw" }],
+    [{ condition: "congruent", direction: "cw" }, { condition: "incongruent", direction: "ccw" }],
+    [{ condition: "congruent", direction: "ccw" }, { condition: "neutral", direction: "ccw" }],
+  ],
+];
+
+function countTrials(trials, predicate) {
+  return trials.reduce((count, trial) => count + (predicate(trial) ? 1 : 0), 0);
+}
+
+function validateFullTrialDesign(trials) {
+  const errors = [];
+  const expect = (label, actual, expected) => {
+    if (actual !== expected) errors.push(`${label}: expected ${expected}, got ${actual}`);
+  };
+
+  expect("total trials", trials.length, 72);
   for (const condition of ["neutral", "congruent", "incongruent"]) {
-    for (const cat of CATEGORIES) {
-      for (let rep = 0; rep < CONFIG.fullRepetitionsPerTargetCondition; rep++) {
-        const jitter = randomInt(-CONFIG.jitterDeg, CONFIG.jitterDeg);
-        let label_category = null;
-        let label_direction = null;
-        if (condition === "neutral" || condition === "incongruent") {
-          label_direction = rep % 2 === 0 ? "cw" : "ccw";
-          label_category = neighborKey(cat.key, label_direction);
-        }
-        pools[condition].push({
-          is_practice: false,
-          condition,
-          target_id: cat.key.toUpperCase(),
-          target_category: cat.key,
-          target_hue_deg: wrapHue(cat.hue + jitter),
-          jitter_deg: jitter,
-          label_category,
-          label_direction,
-          neutral_word: T.neutralWords[(categoryIndex(cat.key) + rep) % T.neutralWords.length],
-        });
-      }
-    }
-    pools[condition] = shuffle(pools[condition]);
+    expect(`${condition} trials`, countTrials(trials, trial => trial.condition === condition), 24);
   }
 
-  const ordered = [];
-  for (let block = 0; block < 3; block++) {
-    const blockTrials = [];
+  for (const target of TARGETS) {
+    const targetTrials = trials.filter(trial => trial.target_id === target.id);
+    expect(`${target.id} total`, targetTrials.length, 6);
     for (const condition of ["neutral", "congruent", "incongruent"]) {
-      blockTrials.push(...pools[condition].slice(block * 8, (block + 1) * 8));
+      const conditionTrials = targetTrials.filter(trial => trial.condition === condition);
+      expect(`${target.id} ${condition}`, conditionTrials.length, 2);
+      for (const direction of ["cw", "ccw"]) {
+        expect(
+          `${target.id} ${condition} ${direction}`,
+          countTrials(conditionTrials, trial => trial.label_direction === direction),
+          1
+        );
+      }
     }
-    ordered.push(...shuffle(blockTrials));
   }
+
+  for (let block = 0; block < 3; block++) {
+    const blockTrials = trials.slice(block * 24, (block + 1) * 24);
+    expect(`block ${block + 1} total`, blockTrials.length, 24);
+    for (const condition of ["neutral", "congruent", "incongruent"]) {
+      expect(
+        `block ${block + 1} ${condition}`,
+        countTrials(blockTrials, trial => trial.condition === condition),
+        8
+      );
+    }
+    for (const target of TARGETS) {
+      expect(
+        `block ${block + 1} ${target.id}`,
+        countTrials(blockTrials, trial => trial.target_id === target.id),
+        2
+      );
+    }
+  }
+
+  const neutralTrials = trials.filter(trial => trial.condition === "neutral");
+  for (const word of T.neutralWords) {
+    expect(
+      `neutral word "${word}"`,
+      countTrials(neutralTrials, trial => trial.neutral_word === word),
+      4
+    );
+  }
+
+  if (errors.length) console.error("Full trial design validation failed:\n" + errors.join("\n"));
+  return errors.length === 0;
+}
+
+function makeFullMainTrials() {
+  const blocks = [[], [], []];
+  const neutralWords = shuffle(T.neutralWords.flatMap(word => Array(4).fill(word)));
+  let neutralIndex = 0;
+
+  TARGETS.forEach((target, targetIndex) => {
+    const pattern = BLOCK_ASSIGNMENT_PATTERNS[targetIndex % 3];
+    pattern.forEach((assignments, blockIndex) => {
+      assignments.forEach(({ condition, direction }) => {
+        const neutralWord = condition === "neutral" ? neutralWords[neutralIndex++] : null;
+        blocks[blockIndex].push(createMainTrial(target, condition, direction, neutralWord));
+      });
+    });
+  });
+
+  const ordered = blocks.flatMap(blockTrials => shuffle(blockTrials));
+  validateFullTrialDesign(ordered);
   return ordered;
 }
 
